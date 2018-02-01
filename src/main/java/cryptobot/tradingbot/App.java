@@ -7,12 +7,14 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
@@ -21,6 +23,9 @@ import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.AggTrade;
 import com.binance.api.client.domain.market.OrderBook;
 import com.binance.api.client.domain.market.OrderBookEntry;
+
+import net.gpedro.integrations.slack.SlackApi;
+import net.gpedro.integrations.slack.SlackMessage;
 
 /**
  * Hello world!
@@ -36,7 +41,7 @@ public class App {
 			"WTCBTC", "BCCBTC", "ADXBTC", "DGDBTC", "GASBTC", "KNCBTC", "IOTABTC", "XVGBTC", "REQBTC", "ETCBTC",
 			"OMGBTC", "BRDBTC", "SUBBTC", "POEBTC", "ZRXBTC", "QTUMBTC", "MDABTC", "XMRBTC", "BTGBTC", "BQXBTC",
 			"VIBBTC", "BTSBTC", "AIONBTC", "MTLBTC", "STRATBTC", "LENDBTC", "APPCBTC", "GTOBTC", "LUNBTC", "SALTBTC" };
-	private static final String REQUEST_URL = "https://slack.com/api/chat.postMessage?token=xoxp-264540871856-264540872416-307075926480-cc0b12248bf42be567bb768443e81265&channel=general&text=";
+	private static final String REQUEST_URL = "https://hooks.slack.com/services/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";
 
 	public static void main(String[] args) {
 		System.out.println("Hello World!");
@@ -87,7 +92,7 @@ public class App {
 
 	public static String getBestSymbol() {
 		HashMap<String, Float> symbolHashMap = new HashMap<String, Float>();
-		String result = "";
+		String result = ":ghost:\n:ghost:\n:ghost:\n:ghost:\n:ghost:\n:ghost:\n";
 		for (String symbol : symbolList) {
 			try {
 				symbolHashMap.put(symbol, buySellRatio(symbol));
@@ -96,15 +101,22 @@ public class App {
 				e.printStackTrace();
 			}
 		}
-		TreeMap<String, Float> sorted = new TreeMap<String, Float>();
-		sorted.putAll(symbolHashMap);
+		TreeMap<String, Float> treeMap = new TreeMap<String, Float>();
+		treeMap.putAll(symbolHashMap);
+		SortedSet<Entry<String, Float>> sorted = entriesSortedByValues(treeMap);
 		int i = 0;
-		for (HashMap.Entry<String, Float> entry : entriesSortedByValues(sorted)) {
+		int j = sorted.size();
+		for (HashMap.Entry<String, Float> entry : sorted) {
 			i++;
-			result += "Symbol_" + i + ": " + entry.getKey() + "\n";
-			result += "Ratio_" + i + ": " + entry.getValue() + "\n\n\n";
-			if (i > 3)
-				break;
+			if (i <= 3) {
+				result += "Symbol_" + i + ": " + entry.getKey() + "\n";
+				result += "Ratio_" + i + ": " + entry.getValue() + "\n\n\n";
+			}
+
+			if (i >= j - 3) {
+				result += "Symbol_" + i + ": " + entry.getKey() + "\n";
+				result += "Ratio_" + i + ": " + entry.getValue() + "\n\n\n";
+			}
 		}
 		return result;
 	}
@@ -118,18 +130,9 @@ public class App {
 	}
 
 	public static void sendSlackMessage(String message) throws IOException {
-		CloseableHttpClient httpclient = HttpClients.createDefault();
-		try {
-			HttpGet httpget = new HttpGet(REQUEST_URL + URLEncoder.encode(message, "UTF-8"));
-
-			System.out.println("Executing request " + httpget.getRequestLine());
-
-			CloseableHttpResponse responseBody = httpclient.execute(httpget);
-			System.out.println("----------------------------------------");
-			System.out.println(responseBody);
-		} finally {
-			httpclient.close();
-		}
+		// Send simple message
+		SlackApi api = new SlackApi(REQUEST_URL);
+		api.call(new SlackMessage(message));
 	}
 
 	static <K, V extends Comparable<? super V>> SortedSet<Map.Entry<K, V>> entriesSortedByValues(Map<K, V> map) {
